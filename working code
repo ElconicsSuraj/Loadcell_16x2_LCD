@@ -1,0 +1,64 @@
+#include <Arduino.h>
+#include "HX711.h"
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+// Initalizing I2C 16X2 LCD with 0x27
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+// HX711 circuit wiring
+const int LOADCELL_DOUT_PIN = 16;
+const int LOADCELL_SCK_PIN = 4;
+float val;
+HX711 scale;
+#define TARE_BUTTON_PIN 5
+void setup() {
+  Serial.begin(57600);
+  pinMode(TARE_BUTTON_PIN, INPUT_PULLUP); // Set the tare button pin as input with internal pull-up resistor
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+  lcd.begin();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("ANTZ System");
+  delay(1000);
+  lcd.setCursor(1, 0);
+  lcd.print("Weight Machine");
+  lcd.clear();
+  Serial.println(scale.read());      // print a raw reading from the ADC
+  scale.set_scale(2006);
+  //scale.set_scale(-471.497);                      // this value is obtained by calibrating the scale with known weights; see the README for details
+  scale.tare();               // reset the scale to 0
+
+}
+
+void loop() {
+
+  val = scale.get_units(1);
+
+  if (digitalRead(TARE_BUTTON_PIN) == LOW) { // Check if the tare button is pressed
+    scale.tare(); // If pressed, reset the scale to zero
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Tare To 0");
+    delay(1000); // Debouncing delay
+    lcd.clear();
+  }
+
+  if (val < 3)
+  {
+    val = 0;
+
+  }
+  weight();
+
+}
+
+float weight()
+{
+  lcd.setCursor(0, 0);
+  lcd.print("Weight : ");
+  lcd.setCursor(0, 11);
+  lcd.print(val);
+  delay(400);
+  return val;
+
+
+}
